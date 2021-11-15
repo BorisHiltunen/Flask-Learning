@@ -1,17 +1,25 @@
-from flask import Flask, render_template, request, redirect, \
+from flask import Flask, request, render_template, redirect, \
     url_for, flash, make_response, session
 from flask_script import Manager, Command, Shell
 from forms import ContactForm
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from flask_migrate import Migrate, MigrateCommand
+from flask_script import Manager
+
+#Maybe not needed?
+import json as _json
 
 app = Flask(__name__)
 app.debug  = True
 app.config['SECRET_KEY'] = 'a really really really really long secret key'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:pass@localhost/flask_app_db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:1234@localhost/flask_app_db'
 
 manager = Manager(app)
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+manager = Manager(app)
+manager.add_command('db', MigrateCommand)
 
 class Faker(Command):
     'A command to add fkae data to the tables'
@@ -66,9 +74,15 @@ def contact():
         email = form.email.data
         message = form.message.data
         print(name)
+        #Maybe Post isn't needed?
+        print(Post)
         print(email)
         print(message)
         # db logic goes here
+        feedback = Feedback(name=name, email=email, message=message)
+        db.session.add(feedback)
+        db.session.commit()
+
         print("\nData received. Now redirecting ...")
         flash("Message Received", "success")
         return redirect(url_for('contact'))
@@ -133,7 +147,7 @@ class Category(db.Model):
     name = db.Column(db.String(255), nullable=False)
     slug = db.Column(db.String(255), nullable=False)
     created_on = db.Column(db.DateTime(), default=datetime.utcnow)
-    posts = db.relationship('Post', backref='category')
+    posts = db.relationship('Post', backref='category', cascade='all,delete-orphan')
 
     def __repr__(self):
         return "<{}:{}>".format(id, self.name)
@@ -166,6 +180,17 @@ class Tag(db.Model):
 
     def __repr__(self):
         return "<{}:{}>".format(id, self.name)
+
+class Feedback(db.Model):
+    __tablename__ = 'feedbacks'
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(1000), nullable=False)
+    email = db.Column(db.String(100), nullable=False)
+    message = db.Column(db.Text(), nullable=False)
+    created_on = db.Column(db.DateTime(), default=datetime.utcnow)
+
+    def __repr__(self):
+        return "<{}:{}>".format(self.id, self.name)
 
 if __name__ == "__main__":
     app.run(debug=True)
