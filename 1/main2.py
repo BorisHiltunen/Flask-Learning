@@ -193,4 +193,4 @@ class Feedback(db.Model):
         return "<{}:{}>".format(self.id, self.name)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)
