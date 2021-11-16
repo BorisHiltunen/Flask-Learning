@@ -58,8 +58,8 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')  # access the data inside 
         password = request.form.get('password')
-
-        if username == 'root' and password == 'pass':
+        #pass -> 1234
+        if username == 'root' and password == '1234':
             message = "Correct username and password"
         else:
             message = "Wrong username or password"
@@ -193,4 +193,4 @@ class Feedback(db.Model):
         return "<{}:{}>".format(self.id, self.name)
 
 if __name__ == "__main__":
-    app.run(debug=False)
+    app.run(manager.run())
