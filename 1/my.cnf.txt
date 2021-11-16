@@ -1,0 +1,110 @@
+#
+#This is for a system with large memory (4GB - 8GB)
+# Use this file to configure MYSQL on the Application server.
+
+# The default location for my.cnf is /etc/my.cnf to set
+global options.
+# Put the my.cnf file in the installation root directory for
+installation specific settings.
+# Or in the installation folder~/.my.cnf to set user-specific
+options.
+
+# The following options will be passed to all MySQL clients
+[client]
+#password = your_password
+port = 3306
+socket = d:/Spend/mysql-5.5.15-winx64/tmp/mysql.sock
+
+#character-set-server=utf8
+#collation-server=utf8_general_ci
+#lower_case_table_names=1
+
+# Here follows entries for some specific programs
+
+# The MySQL server
+[mysqld]
+port = 3306
+socket = d:/Spend/mysql-5.5.15-winx64/tmp/mysql.sock
+#skip-locking ---Commented by QA for MySQL 5.5.15
+key_buffer = 2048M
+key_buffer_size=2048M
+
+key_cache_block_size=1024
+max_allowed_packet = 16M
+table_cache = 512
+table_open_cache=512
+sort_buffer_size = 16M
+net_buffer_length = 1M
+read_buffer_size = 16M
+read_rnd_buffer_size = 64M
+query_cache_size = 2048M
+max_heap_table_size=1536M
+myisam_sort_buffer_size = 256M
+myisam_max_sort_file_size=384M
+#myisam_max_extra_sort_file_size=768M
+thread_cache_size=8
+thread_concurrency=8
+max_connections=350
+
+#character-set-server=utf8
+#collation-server=utf8_general_ci
+lower_case_table_names=1
+sql-mode = "STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_
+ENGINE_SUBSTITUTION,NO_AUTO_VALUE_ON_ZERO"
+default-storage-engine=MyISAM
+datadir=D:/Spend/mysql-5.5.15-winx64/data
+
+# Replication Master Server (default)
+# binary logging is required for replication
+log-bin=mysql-bin
+
+# required unique id between 1 and 2^32 - 1
+# defaults to 1 if master-host is not set
+# but will not function as a master if omitted
+server-id = 1
+
+# Point the following paths to different dedicated disks
+# tmpdir = c:/cust/tmp/
+# Uncomment the following if you are using InnoDB tables
+innodb_data_home_dir = D:/Spend/mysql-5.5.15-winx64/data/
+innodb_data_file_path = ibdata1:512M:autoextend
+innodb_log_group_home_dir = D:/Spend/mysql-5.5.15-
+winx64/data/
+#innodb_log_arch_dir = C:\spend\sw\mysql-5.5.15-winx64\data\
+# You can set .._buffer_pool_size up to 50 - 80 %
+# of RAM but beware of setting memory usage too high
+innodb_buffer_pool_size = 32M
+innodb_additional_mem_pool_size = 16M
+# Set .._log_file_size to 25 % of buffer pool size
+innodb_log_file_size = 5M
+innodb_log_buffer_size = 8M
+innodb_flush_log_at_trx_commit = 1
+innodb_lock_wait_timeout = 50
+# binlog_format added for mysql version 5.1.34. bugzilla pr
+no. 76015
+binlog_format=mixed
+
+[mysqldump]
+quick
+max_allowed_packet = 32M
+
+[mysql]
+no-auto-rehash
+# Remove the next comment character if you are not familiar
+with SQL
+#safe-updates
+
+[isamchk]
+key_buffer = 1024M
+sort_buffer_size = 256M
+read_buffer = 8M
+write_buffer = 16M
+
+[myisamchk]
+key_buffer = 1024M
+sort_buffer_size = 256M
+read_buffer = 8M
+write_buffer = 8M
+
+[mysqlhotcopy]
+interactive-timeout
