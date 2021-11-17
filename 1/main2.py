@@ -6,23 +6,34 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from flask_migrate import Migrate, MigrateCommand
 from flask_script import Manager
-
-#Maybe not needed?
-import json as _json
+from flask_mail import Mail, Message
+from threading import Thread
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import LoginManager, UserMixin, login_required
 
 app = Flask(__name__)
 app.debug  = True
 app.config['SECRET_KEY'] = 'a really really really really long secret key'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:1234@localhost/flask_app_db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:1234@localhost/flask_app_db' # enter //<mysql:username>:<mysql:password>@
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['MAIL_SERVER']='smtp.gmail.com'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_USERNAME'] = 'email@gmail.com' # enter your email here
+app.config['MAIL_DEFAULT_SENDER'] = 'email@gmail.com' # enter your email here
+app.config['MAIL_PASSWORD'] = 'password' # enter your password here
+app.config['MAIL_USE_TLS'] = False
+app.config['MAIL_USE_SSL'] = True
 
-manager = Manager(app)
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
 manager = Manager(app)
 manager.add_command('db', MigrateCommand)
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+mail = Mail(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
 
 class Faker(Command):
-    'A command to add fkae data to the tables'
+    'A command to add fake data to the tables'
     def run(self):
         # add Logic here
         print("Fake data entered")
@@ -40,6 +51,18 @@ def foo():
     "Just a simple command"
     print("foo command executed")
 
+#Maybe not the best place for these 2 functions (async_send_mail and send_mail)?
+def async_send_mail(app, msg):
+    with app.app_context():
+        mail.send(msg)
+
+def send_mail(subject, recipient, template, **kwargs):
+    msg = Message(subject, sender=app.config['MAIL_DEFAULT_SENDER'], recipients=[recipient])
+    msg.html = render_template(template, **kwargs)
+    thr = Thread(target=async_send_mail, args=[app, msg])
+    thr.start()
+    return thr
+
 @app.route('/')
 def index():
     return render_template('index.html', name='Jerry')
@@ -56,6 +79,7 @@ def books(genre):
 def login():
     message = ''
     if request.method == 'POST':
+        print(request.form)
         username = request.form.get('username')  # access the data inside 
         password = request.form.get('password')
         #pass -> 1234
@@ -82,6 +106,20 @@ def contact():
         feedback = Feedback(name=name, email=email, message=message)
         db.session.add(feedback)
         db.session.commit()
+
+        #Maybe not needed?
+        #msg = Message("Feedback", recipients=[app.config['MAIL_USERNAME']])
+        #msg.body = "You have received a new feedback from {} <{}>.".format(name, email)
+        #mail.send(msg)
+
+        #Better way
+        send_mail("New Feedback", app.config['MAIL_DEFAULT_SENDER'], 'mail/feedback.html',
+                  name=name, email=email)
+
+        #Gmail
+        #msg = Message('Hello from the other side!', sender =   'borhilt@gmail.com', recipients = ['borhilt@gmail.com'])
+        #msg.body = "Hey Paul, sending you this email from my Flask app, lmk if it works"
+        #mail.send(msg)
 
         print("\nData received. Now redirecting ...")
         flash("Message Received", "success")
@@ -141,6 +179,11 @@ def updating_session():
 
     return res
 
+@app.route('/admin/')
+@login_required
+def admin():
+    return render_template('admin.html')
+
 class Category(db.Model):
     __tablename__ = 'categories'
     id = db.Column(db.Integer(), primary_key=True)
@@ -191,6 +234,37 @@ class Feedback(db.Model):
 
     def __repr__(self):
         return "<{}:{}>".format(self.id, self.name)
+
+class Employee(db.Model):
+    __tablename__ = 'employees'
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    designation = db.Column(db.String(255), nullable=False)
+    doj = db.Column(db.Date(), nullable=False)  
+
+#Is this in the right place?
+@login_manager.user_loader
+def load_user(user_id):
+    return db.session.query(User).get(user_id)
+
+class User(db.Model, UserMixin):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(100))
+    username = db.Column(db.String(50), nullable=False, unique=True)
+    email = db.Column(db.String(100), nullable=False, unique=True)
+    password_hash = db.Column(db.String(100), nullable=False)
+    created_on = db.Column(db.DateTime(), default=datetime.utcnow)
+    updated_on = db.Column(db.DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return "<{}:{}>".format(self.id, self.username)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 if __name__ == "__main__":
     app.run(manager.run())

@@ -10,6 +10,10 @@
         <p>{{ message }}</p>
     {% endif %}
 
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+        <spam class="{{ category }}">{{ message }}</spam>
+    {% endfor %}
+
     <form action="" method="post">
         <p>
             <label for="username">Username</label>
