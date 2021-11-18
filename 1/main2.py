@@ -1,7 +1,7 @@
 from flask import Flask, request, render_template, redirect, \
     url_for, flash, make_response, session
 from flask_script import Manager, Command, Shell
-from forms import ContactForm
+from forms import ContactForm, LoginForm
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from flask_migrate import Migrate, MigrateCommand
@@ -9,7 +9,7 @@ from flask_script import Manager
 from flask_mail import Mail, Message
 from threading import Thread
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import LoginManager, UserMixin, login_required
+from flask_login import LoginManager, UserMixin, login_required, login_user, current_user, logout_user
 
 app = Flask(__name__)
 app.debug  = True
@@ -77,18 +77,39 @@ def books(genre):
 
 @app.route('/login/', methods=['post', 'get'])
 def login():
-    message = ''
-    if request.method == 'POST':
-        print(request.form)
-        username = request.form.get('username')  # access the data inside 
-        password = request.form.get('password')
-        #pass -> 1234
-        if username == 'root' and password == '1234':
-            message = "Correct username and password"
-        else:
-            message = "Wrong username or password"
+    if current_user.is_authenticated:
+        return redirect(url_for('admin'))
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = db.session.query(User).filter(User.username == form.username.data).first()
+        if user and user.check_password(form.password.data):
+            login_user(user, remember=form.remember.data)
+            return redirect(url_for('admin'))
 
-    return render_template('login.html', message=message)
+        flash("Invalid username/password", 'error')
+        return redirect(url_for('login'))
+    return render_template('login.html', form=form)
+
+    #Maybe not needed anymore?
+    #message = ''
+    #if request.method == 'POST':
+        #print(request.form)
+        #username = request.form.get('username')  # access the data inside 
+        #password = request.form.get('password')
+        #pass -> 1234
+        #if username == 'root' and password == '1234':
+            #message = "Correct username and password"
+        #else:
+            #message = "Wrong username or password"
+
+    #return render_template('login.html', message=message)
+
+@app.route('/logout/')
+@login_required
+def logout():
+    logout_user()    
+    flash("You have been logged out.")
+    return redirect(url_for('login'))
 
 @app.route('/contact/', methods=['get', 'post'])
 def contact():
