@@ -1,15 +1,16 @@
-from flask import Flask, request, render_template, redirect, \
-    url_for, flash, make_response, session
+from flask import Flask, request, render_template, redirect, url_for, flash, make_response, session
 from flask_script import Manager, Command, Shell
 from forms import ContactForm, LoginForm
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from flask_migrate import Migrate, MigrateCommand
-from flask_script import Manager
 from flask_mail import Mail, Message
 from threading import Thread
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_required, login_user, current_user, logout_user
+import json
+
+print(json.__file__)
 
 app = Flask(__name__)
 app.debug  = True
@@ -52,8 +53,8 @@ def foo():
     print("foo command executed")
 
 #Maybe not the best place for these 2 functions (async_send_mail and send_mail)?
-def async_send_mail(app, msg):
-    with app.app_context():
+def async_send_mail(ap, msg):
+    with ap.app_context():
         mail.send(msg)
 
 def send_mail(subject, recipient, template, **kwargs):
